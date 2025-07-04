@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video / Ses İndirici</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fafafa;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;
+         height:100vh;padding:24px}
+    h1{color:#222;margin-bottom:12px}
+    .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+    input,select,button{width:100%;max-width:420px;padding:12px;margin-top:12px;font-size:16px}
+    button{background:#0069ff;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:.2s}
+    button:hover{background:#0052c2}
+    #result{margin-top:20px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Video / Ses İndir</h1>
+    <input id="videoURL" placeholder="YouTube veya başka video linki">
+    <select id="format">
+      <option value="mp4">MP4 (Video)</option>
+      <option value="mp3">MP3 (Ses)</option>
+    </select>
+    <button onclick="download()">İndir</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function download(){
+      const url=document.getElementById('videoURL').value.trim();
+      const format=document.getElementById('format').value;
+      if(!url){alert("Lütfen bir link girin");return}
+
+      document.getElementById('result').innerHTML="⏳ İşleniyor...";
+      try{
+        const res=await fetch("https://SENIN-REPLIT-URLIN.com/download",{
+          method:"POST",
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({url,format})
+        });
+        const data=await res.json();
+        if(data.downloadUrl){
+          document.getElementById('result').innerHTML=
+            `<a href="${data.downloadUrl}" download>📥 Dosyayı İndir</a>`;
+        }else{
+          document.getElementById('result').textContent="İndirme başarısız.";
+        }
+      }catch(e){
+        document.getElementById('result').textContent="Sunucu hatası: "+e;
+      }
+    }
+  </script>
+</body>
+</html>
