@@ -1,0 +1,42 @@
+name: video-download
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Video URL"
+        required: true
+      format:
+        description: "mp4 | mp3"
+        required: true
+jobs:
+  dl:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        pip install yt-dlp
+    - name: Download
+      id: get
+      run: |
+        set -e
+        url="${{ github.event.inputs.url }}"
+        fmt="${{ github.event.inputs.format }}"
+        name="video.$fmt"
+        if [ "$fmt" = "mp3" ]; then
+          yt-dlp "$url" -f bestaudio -x --audio-format mp3 -o "$name"
+        else
+          yt-dlp "$url" -f bestvideo*+bestaudio/best --merge-output-format mp4 -o "$name"
+        fi
+        echo "name=$name" >> $GITHUB_OUTPUT
+    - name: Create temp release & upload asset
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: "temp-${{ github.run_id }}"
+        name: "temp-${{ github.run_id }}"
+        files: ${{ steps.get.outputs.name }}
+        generate_release_notes: false
+        draft: false
+        prerelease: false
