@@ -1,55 +1,89 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-require('dotenv').config();
-
-const videoRoutes = require('./routes/video');
+const ytdl = require('ytdl-core');
+const path = require('path');
+const sanitize = require('sanitize-filename');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static('.'));
 
-// Routes
-app.use('/api/video', videoRoutes);
-
-// Ana route
+// Serve main page
 app.get('/', (req, res) => {
-  res.json({
-    message: 'YouTube Video Downloader Backend API',
-    endpoints: {
-      'GET /api/video/info': 'Video bilgilerini getir',
-      'GET /api/video/download': 'Video indirme linki al'
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Get video info
+app.post('/api/info', async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url || !ytdl.validateURL(url)) {
+            return res.status(400).json({ error: 'Geçersiz YouTube URL\'si' });
+        }
+
+        const info = await ytdl.getInfo(url);
+        const videoDetails = info.videoDetails;
+        
+        const formats = ytdl.filterFormats(info, 'audioandvideo');
+        const audioFormats = ytdl.filterFormats(info, 'audioonly');
+        
+        const videoFormats = formats.map(format => ({
+            quality: format.qualityLabel || 'Bilinmeyen',
+            container: format.container,
+            hasAudio: format.hasAudio,
+            hasVideo: format.hasVideo,
+            itag: format.itag
+        }));
+
+        const audioOnly = audioFormats.map(format => ({
+            quality: format.audioBitrate ? `${format.audioBitrate}kbps` : 'Bilinmeyen',
+            container: format.container,
+            itag: format.itag
+        }));
+
+        res.json({
+            title: videoDetails.title,
+            thumbnail: videoDetails.thumbnails[0]?.url,
+            duration: videoDetails.lengthSeconds,
+            author: videoDetails.author.name,
+            videoFormats,
+            audioFormats: audioOnly
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Video bilgileri alınırken hata oluştu' });
     }
-  });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Endpoint bulunamadı',
-    message: 'Lütfen geçerli bir endpoint kullanın'
-  });
-});
+// Download video
+app.get('/api/download', async (req, res) => {
+    try {
+        const { url, itag } = req.query;
+        
+        if (!url || !ytdl.validateURL(url)) {
+            return res.status(400).json({ error: 'Geçersiz YouTube URL\'si' });
+        }
 
-// Error handler
-app.use((error, req, res, next) => {
-  console.error('Server Error:', error);
-  res.status(500).json({
-    error: 'Sunucu hatası',
-    message: 'Bir şeyler yanlış gitti'
-  });
+        const info = await ytdl.getInfo(url);
+        const format = ytdl.chooseFormat(info, { quality: itag });
+        const title = sanitize(info.videoDetails.title);
+        
+        res.header('Content-Disposition', `attachment; filename="${title}.${format.container}"`);
+        res.header('Content-Type', format.mimeType);
+        
+        ytdl(url, { quality: itag }).pipe(res);
+    } catch (error) {
+        console.error('Download error:', error);
+        res.status(500).json({ error: 'İndirme sırasında hata oluştu' });
+    }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server çalışıyor: http://localhost:${PORT}`);
-  console.log(`📋 API Dokümantasyonu: http://localhost:${PORT}`);
+    console.log(`Server ${PORT} portunda çalışıyor`);
+    console.log(`http://localhost:${PORT} adresinden erişebilirsiniz`);
 });

@@ -1,137 +1,77 @@
-# YouTube Video Downloader Backend
+# YouTube Video İndirici
 
-Bu proje, YouTube videolarını indirmek için geliştirilmiş bir backend API'sidir. Express.js ve ytdl-core kütüphanesi kullanarak YouTube videolarının bilgilerini alma ve indirme işlemlerini gerçekleştirir.
+Modern ve kullanıcı dostu YouTube video indirme sitesi. Video ve ses formatlarında indirme desteği ile.
 
-## 🚀 Özellikler
+## Özellikler
 
-- ✅ YouTube video bilgilerini getirme
-- ✅ Video kalite seçeneklerini listeleme  
-- ✅ Video indirme linkleri sağlama
-- ✅ CORS desteği (frontend entegrasyonu için)
-- ✅ Hata yönetimi
-- ✅ Güvenlik önlemleri (Helmet.js)
+- 🎥 YouTube videolarını farklı kalitelerde indirme
+- 🎵 Sadece ses dosyası olarak indirme
+- 📱 Responsive tasarım (mobil uyumlu)
+- 🎨 Modern ve güzel arayüz
+- ⚡ Hızlı ve kolay kullanım
+- 📋 Video bilgilerini görüntüleme
 
-## 📋 API Endpoints
+## Kurulum
 
-### 1. Video Bilgilerini Getirme
-```
-GET /api/video/info?url=YOUTUBE_URL
-```
+1. **Gereksinimler**
+   - Node.js (v14 veya üzeri)
+   - npm
 
-**Örnek Yanıt:**
-```json
-{
-  "success": true,
-  "data": {
-    "title": "Video Başlığı",
-    "duration": "180",
-    "thumbnail": "https://...",
-    "author": "Kanal Adı",
-    "viewCount": "1000000",
-    "description": "Video açıklaması...",
-    "formats": [...]
-  }
-}
-```
+2. **Projeyi klonlayın**
+   ```bash
+   git clone <repo-url>
+   cd youtube-downloader
+   ```
 
-### 2. Video İndirme
-```
-GET /api/video/download?url=YOUTUBE_URL&quality=highest
-```
+3. **Bağımlılıkları yükleyin**
+   ```bash
+   npm install
+   ```
 
-Kalite seçenekleri: `highest`, `lowest`, `720p`, `1080p`, vb.
+4. **Uygulamayı başlatın**
+   ```bash
+   npm start
+   ```
 
-### 3. Kalite Seçeneklerini Listeleme
-```
-GET /api/video/formats?url=YOUTUBE_URL
-```
+   Geliştirme modu için:
+   ```bash
+   npm run dev
+   ```
 
-## 🛠️ Kurulum
+5. **Tarayıcıda açın**
+   ```
+   http://localhost:3000
+   ```
 
-1. **Repository'yi klonlayın:**
-```bash
-git clone <repository-url>
-cd youtube-downloader-backend
-```
+## Kullanım
 
-2. **Bağımlılıkları yükleyin:**
-```bash
-npm install
-```
+1. YouTube video URL'sini girin
+2. "Video Bilgilerini Al" butonuna tıklayın
+3. İstediğiniz formatı seçin ve indirin
 
-3. **Sunucuyu başlatın:**
-```bash
-# Geliştirme modu
-npm run dev
+## Teknik Detaylar
 
-# Üretim modu
-npm start
-```
+- **Backend**: Node.js + Express
+- **Frontend**: Vanilla HTML/CSS/JavaScript
+- **YouTube API**: ytdl-core
+- **Styling**: Modern CSS Grid ve Flexbox
 
-4. **API'ye erişin:**
-```
-http://localhost:3000
-```
+## API Endpoints
 
-## 📦 Kullanılan Teknolojiler
+- `POST /api/info` - Video bilgilerini al
+- `GET /api/download` - Video/ses dosyasını indir
 
-- **Express.js** - Web framework
-- **ytdl-core** - YouTube video indirme
-- **CORS** - Cross-origin istekler için
-- **Helmet** - Güvenlik
-- **dotenv** - Çevre değişkenleri
+## Bağımlılıklar
 
-## 🔧 Ortam Değişkenleri
+- express: Web server
+- cors: Cross-origin requests
+- ytdl-core: YouTube video indirme
+- sanitize-filename: Dosya adı temizleme
 
-`.env` dosyasında şu değişkenleri ayarlayabilirsiniz:
+## Güvenlik Notu
 
-```env
-PORT=3000
-NODE_ENV=development
-```
+Bu uygulama eğitim amaçlı geliştirilmiştir. YouTube'un hizmet şartlarına uygun kullanım sorumluluğu kullanıcıya aittir.
 
-## 🚦 Kullanım Örnekleri
+## Lisans
 
-### JavaScript ile Frontend Entegrasyonu
-
-```javascript
-// Video bilgilerini alma
-const getVideoInfo = async (url) => {
-  const response = await fetch(`http://localhost:3000/api/video/info?url=${encodeURIComponent(url)}`);
-  const data = await response.json();
-  return data;
-};
-
-// Video indirme linki alma
-const downloadVideo = (url, quality = 'highest') => {
-  const downloadUrl = `http://localhost:3000/api/video/download?url=${encodeURIComponent(url)}&quality=${quality}`;
-  window.open(downloadUrl, '_blank');
-};
-```
-
-## ⚠️ Önemli Notlar
-
-- Bu API sadece eğitim amaçlıdır
-- YouTube'un kullanım şartlarına uygun kullanım yapınız
-- Telif hakkı korumalı içerikleri indirmeden önce izin alınız
-- Yoğun kullanım için rate limiting eklenebilir
-
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
-3. Commit yapın (`git commit -m 'Add some AmazingFeature'`)
-4. Push yapın (`git push origin feature/AmazingFeature`)
-5. Pull Request oluşturun
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
-
-## 🔗 İlgili Projeler
-
-- Frontend Repository: [YouTube Downloader Frontend] (ayrı repository'de)
-
----
-
-**Not:** Bu backend API'si, frontend uygulaması ile birlikte kullanılmak üzere tasarlanmıştır. Frontend uygulamasını ayrı bir repository'de geliştirip bu API ile entegre edebilirsiniz.
+MIT License
