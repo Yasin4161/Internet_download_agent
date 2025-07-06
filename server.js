@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const path = require('path');
 const sanitize = require('sanitize-filename');
 
@@ -20,66 +20,108 @@ app.get('/', (req, res) => {
 // Get video info
 app.post('/api/info', async (req, res) => {
     try {
+        console.log('API info request received:', req.body);
         const { url } = req.body;
         
-        if (!url || !ytdl.validateURL(url)) {
+        if (!url) {
+            console.log('No URL provided');
+            return res.status(400).json({ error: 'URL gerekli' });
+        }
+
+        if (!ytdl.validateURL(url)) {
+            console.log('Invalid YouTube URL:', url);
             return res.status(400).json({ error: 'Geçersiz YouTube URL\'si' });
         }
 
+        console.log('Getting video info for:', url);
         const info = await ytdl.getInfo(url);
         const videoDetails = info.videoDetails;
         
+        if (!videoDetails) {
+            return res.status(500).json({ error: 'Video detayları alınamadı' });
+        }
+
         const formats = ytdl.filterFormats(info, 'audioandvideo');
         const audioFormats = ytdl.filterFormats(info, 'audioonly');
         
-        const videoFormats = formats.map(format => ({
-            quality: format.qualityLabel || 'Bilinmeyen',
+        const videoFormats = formats.slice(0, 5).map(format => ({
+            quality: format.qualityLabel || format.height ? `${format.height}p` : 'Bilinmeyen',
             container: format.container,
             hasAudio: format.hasAudio,
             hasVideo: format.hasVideo,
             itag: format.itag
         }));
 
-        const audioOnly = audioFormats.map(format => ({
+        const audioOnly = audioFormats.slice(0, 3).map(format => ({
             quality: format.audioBitrate ? `${format.audioBitrate}kbps` : 'Bilinmeyen',
             container: format.container,
             itag: format.itag
         }));
 
-        res.json({
-            title: videoDetails.title,
-            thumbnail: videoDetails.thumbnails[0]?.url,
-            duration: videoDetails.lengthSeconds,
-            author: videoDetails.author.name,
+        const responseData = {
+            title: videoDetails.title || 'Bilinmeyen',
+            thumbnail: videoDetails.thumbnails && videoDetails.thumbnails[0] ? videoDetails.thumbnails[0].url : '',
+            duration: videoDetails.lengthSeconds || 0,
+            author: videoDetails.author ? videoDetails.author.name : 'Bilinmeyen',
             videoFormats,
             audioFormats: audioOnly
-        });
+        };
+
+        console.log('Sending response:', responseData);
+        res.json(responseData);
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Video bilgileri alınırken hata oluştu' });
+        console.error('API Error:', error.message);
+        res.status(500).json({ error: 'Video bilgileri alınırken hata oluştu: ' + error.message });
     }
 });
 
 // Download video
 app.get('/api/download', async (req, res) => {
     try {
+        console.log('Download request:', req.query);
         const { url, itag } = req.query;
         
-        if (!url || !ytdl.validateURL(url)) {
+        if (!url) {
+            return res.status(400).json({ error: 'URL gerekli' });
+        }
+
+        if (!ytdl.validateURL(url)) {
             return res.status(400).json({ error: 'Geçersiz YouTube URL\'si' });
         }
 
+        if (!itag) {
+            return res.status(400).json({ error: 'Format seçimi gerekli' });
+        }
+
+        console.log('Getting video info for download:', url);
         const info = await ytdl.getInfo(url);
+        
+        if (!info || !info.videoDetails) {
+            return res.status(500).json({ error: 'Video bilgileri alınamadı' });
+        }
+
         const format = ytdl.chooseFormat(info, { quality: itag });
-        const title = sanitize(info.videoDetails.title);
+        const title = sanitize(info.videoDetails.title || 'video');
         
         res.header('Content-Disposition', `attachment; filename="${title}.${format.container}"`);
-        res.header('Content-Type', format.mimeType);
+        res.header('Content-Type', format.mimeType || 'video/mp4');
         
-        ytdl(url, { quality: itag }).pipe(res);
+        console.log('Starting download stream for:', title);
+        const stream = ytdl(url, { quality: itag });
+        
+        stream.on('error', (err) => {
+            console.error('Stream error:', err);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'İndirme hatası' });
+            }
+        });
+
+        stream.pipe(res);
     } catch (error) {
-        console.error('Download error:', error);
-        res.status(500).json({ error: 'İndirme sırasında hata oluştu' });
+        console.error('Download error:', error.message);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'İndirme sırasında hata oluştu: ' + error.message });
+        }
     }
 });
 
