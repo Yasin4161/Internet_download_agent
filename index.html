@@ -26,7 +26,7 @@
       const videoUrl = document.getElementById("videoUrl").value;
       const format = document.getElementById("format").value;
 
-      const res = await fetch("https://senin-render-linkin.onrender.com/download", {
+      const res = await fetch("https://yt-backend-g9is.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: videoUrl, format })
